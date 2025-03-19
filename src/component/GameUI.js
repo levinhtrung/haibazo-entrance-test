@@ -5,6 +5,7 @@ export default function GameUI() {
     const [points, setPoints] = useState(0);
     const [time, setTime] = useState(0);
     const [autoPlay, setAutoPlay] = useState(false);
+    const [error, setError] = useState('');
     const [isPlaying, setIsPlaying] = useState(false);
     const [isCompleted, setIsCompleted] = useState(false);
     const [isGameOver, setIsGameOver] = useState(false);
@@ -13,12 +14,18 @@ export default function GameUI() {
     const getRandomPosition = (max) => Math.random() * max;
 
     const generateRandomNumbers = () => {
+        if (!points || points < 1) {
+            setError('Vui lòng nhập số điểm hợp lệ (tối thiểu 1).');
+            return;
+        }
+    
         const randomNumbers = Array.from({ length: points }, (_, i) => ({
             id: i + 1,
             x: getRandomPosition(250),
             y: getRandomPosition(350),
             clickedTime: null
         }));
+    
         setNumbers(randomNumbers);
         setNextNumber(1);
         setAutoPlay(false);
@@ -26,7 +33,9 @@ export default function GameUI() {
         setIsCompleted(false);
         setIsGameOver(false);
         setTime(0);
+        setError('');
     };
+    
 
     useEffect(() => {
         let timer;
@@ -105,6 +114,9 @@ export default function GameUI() {
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100">
             <div className="bg-white p-6 border border-gray-300 shadow-md">
+                {error && (
+                    <div className="text-red-500 text-sm font-bold mb-4">{error}</div>
+                )}
                 {isCompleted && (
                     <div className="text-green-500 text-lg font-bold mb-2">
                         ALL CLEARED
@@ -124,7 +136,7 @@ export default function GameUI() {
                     <input
                         type="number"
                         value={points || ''}
-                        onChange={(e) => setPoints(Math.min(2000, Math.max(1, Number(e.target.value))))}
+                        onChange={(e) => setPoints(Math.min(2000, Math.max(0, Number(e.target.value))))}
                         className="border border-gray-300 p-1 w-full"
                     />
                 </div>
