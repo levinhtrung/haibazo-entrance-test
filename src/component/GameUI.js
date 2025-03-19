@@ -7,6 +7,8 @@ export default function GameUI() {
     const [autoPlay, setAutoPlay] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isCompleted, setIsCompleted] = useState(false);
+    const [isGameOver, setIsGameOver] = useState(false);
+    const [nextNumber, setNextNumber] = useState(1);
 
     const getRandomPosition = (max) => Math.random() * max;
 
@@ -18,9 +20,11 @@ export default function GameUI() {
             clickedTime: null
         }));
         setNumbers(randomNumbers);
+        setNextNumber(1);
         setAutoPlay(false);
         setIsPlaying(true);
         setIsCompleted(false);
+        setIsGameOver(false);
         setTime(0);
     };
 
@@ -35,20 +39,49 @@ export default function GameUI() {
     }, [isPlaying]);
 
     const handleNumberClick = (id) => {
-        setNumbers(numbers.map(num =>
-            num.id === id ? { ...num, clickedTime: time.toFixed(1), fading: true } : num
-        ));
-
-        if (numbers.filter(num => num.clickedTime === null).length === 1) {
+        if (id !== nextNumber) {
             setIsPlaying(false);
-            setIsCompleted(true);
+            setIsGameOver(true);
+            return;
         }
-
+    
+        setNumbers((prevNumbers) =>
+            prevNumbers.map((num) =>
+                num.id === id
+                    ? { ...num, fading: true, countdown: 2 }
+                    : num
+            )
+        );
+    
+        const countdownInterval = setInterval(() => {
+            setNumbers((prevNumbers) =>
+                prevNumbers.map((num) =>
+                    num.id === id
+                        ? { ...num, countdown: num.countdown - 1 }
+                        : num
+                )
+            );
+        }, 1000);
+    
         setTimeout(() => {
-            setNumbers((prev) => prev.filter(num => num.id !== id));
-        }, 500);
+            clearInterval(countdownInterval);
+    
+            setNumbers((prev) => {
+                const updatedNumbers = prev.filter((num) => num.id !== id);
+                
+                if (updatedNumbers.length === 0) {
+                    setIsPlaying(false);
+                    setIsCompleted(true);
+                }
+    
+                return updatedNumbers;
+            });
+        }, 2000);
+    
+        setNextNumber((prev) => prev + 1);
     };
-
+    
+    
     const toggleAutoPlay = () => {
         setAutoPlay(!autoPlay);
     };
@@ -57,9 +90,9 @@ export default function GameUI() {
         let autoPlayInterval;
         if (autoPlay && numbers.length) {
             autoPlayInterval = setInterval(() => {
-                const nextNumber = numbers.find(num => num.clickedTime === null);
-                if (nextNumber) {
-                    handleNumberClick(nextNumber.id);
+                const next = numbers.find(num => num.id === nextNumber);
+                if (next) {
+                    handleNumberClick(next.id);
                 } else {
                     clearInterval(autoPlayInterval);
                 }
@@ -67,7 +100,7 @@ export default function GameUI() {
         }
 
         return () => clearInterval(autoPlayInterval);
-    }, [autoPlay, numbers]);
+    }, [autoPlay, numbers, nextNumber]);
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -75,6 +108,12 @@ export default function GameUI() {
                 {isCompleted && (
                     <div className="text-green-500 text-lg font-bold mb-2">
                         ALL CLEARED
+                    </div>
+                )}
+
+                {isGameOver && (
+                    <div className="text-red-500 text-lg font-bold mb-2">
+                        GAME OVER
                     </div>
                 )}
 
@@ -106,7 +145,7 @@ export default function GameUI() {
                             onClick={generateRandomNumbers}
                             className="bg-gray-200 px-4 py-2 border border-gray-300"
                         >
-                            Play
+                            {isGameOver ? 'Restart' : 'Play'}
                         </button>
                     ) : (
                         <>
@@ -139,16 +178,16 @@ export default function GameUI() {
                             onClick={() => handleNumberClick(num.id)}
                         >
                             {num.id}
-                            {num.clickedTime && (
-                                <div className="text-xs mt-1">{num.clickedTime}s</div>
+                            {num.fading && num.countdown !== undefined && (
+                                <div className="text-xs mt-1">{num.countdown}s</div>
                             )}
                         </div>
                     ))}
                 </div>
 
-                {!isCompleted && (
+                {!isCompleted && !isGameOver && (
                     <div className="mt-4 text-sm">
-                        Next: {numbers.find(num => num.clickedTime === null)?.id || 'None'}
+                        Next: {nextNumber}
                     </div>
                 )}
             </div>
